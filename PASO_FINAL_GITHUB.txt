@@ -1,0 +1,58 @@
+🔧 PASOS FINALES PARA SUBIR A GITHUB
+═════════════════════════════════════════════════════════════════
+
+PASO 1: VERIFICA TU USUARIO DE GITHUB
+────────────────────────────────────
+
+Tu usuario debe ser exacto. Ve a: https://github.com
+
+Mira la URL. Por ejemplo:
+  https://github.com/willian-reina-g  (si tu usuario es willian-reina-g)
+
+PASO 2: CREA REPOSITORIO EN GITHUB (Si aún no existe)
+──────────────────────────────────────────────────────
+
+1. Ve a https://github.com/new
+2. Completa así:
+
+   Repository name: MLops_medico_automatico
+   Description: Sistema automático de diagnóstico médico basado en ML
+   Public
+   
+3. ❌ NO selecciones:
+   - Add a README file
+   - Add .gitignore
+   - Choose a license
+   
+4. Click "Create repository"
+
+PASO 3: REEMPLAZA "TU-USUARIO" Y EJECUTA ESTO
+──────────────────────────────────────────────
+
+Reemplaza TU-USUARIO con tu usuario real de GitHub:
+
+git remote add origin https://github.com/TU-USUARIO/MLops_medico_automatico.git
+git branch -M main
+git push -u origin main
+
+EJEMPLO (si tu usuario es "willian-reina-g"):
+
+git remote add origin https://github.com/willian-reina-g/MLops_medico_automatico.git
+git branch -M main
+git push -u origin main
+
+PASO 4: VERIFICA EN GITHUB
+─────────────────────────
+
+1. Abre tu navegador: https://github.com/TU-USUARIO/MLops_medico_automatico
+2. Deberías ver todos los archivos
+
+═════════════════════════════════════════════════════════════════
+
+¿CUÁL ES TU USUARIO EXACTO DE GITHUB?
+
+Necesito saber para hacer el push automáticamente.
+
+Por favor responde con tu usuario (sin espacios, tal como aparece en GitHub).
+
+═════════════════════════════════════════════════════════════════

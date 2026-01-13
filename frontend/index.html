@@ -334,6 +334,10 @@
                 <div id="newPatientForm" style="display: none;">
                     <h3>Registro de Nuevo Paciente</h3>
                     <div class="form-group">
+                        <label>Cédula de Identidad *</label>
+                        <input type="text" id="patientCedula" placeholder="V-12345678 o 12345678">
+                    </div>
+                    <div class="form-group">
                         <label>Nombre Completo *</label>
                         <input type="text" id="patientName" placeholder="Juan Pérez García">
                     </div>
@@ -369,8 +373,8 @@
                 <!-- Paciente Existente -->
                 <div id="existingPatientForm">
                     <div class="form-group">
-                        <label>ID de Paciente *</label>
-                        <input type="number" id="patientId" placeholder="Ingrese su ID de paciente">
+                        <label>Cédula de Identidad *</label>
+                        <input type="text" id="patientCedula" placeholder="V-12345678 o 12345678">
                     </div>
                 </div>
 
@@ -398,8 +402,8 @@
             <div id="patient-history" class="form-section">
                 <h2>Historial Médico</h2>
                 <div class="form-group">
-                    <label>ID de Paciente</label>
-                    <input type="number" id="historyPatientId" placeholder="Ingrese su ID de paciente">
+                    <label>Cédula de Identidad</label>
+                    <input type="text" id="historyPatientId" placeholder="V-12345678 o 12345678">
                 </div>
                 <button class="btn-primary" onclick="loadPatientHistory()">Cargar Historial</button>
                 <div id="historyResult" style="margin-top: 20px;"></div>
@@ -409,8 +413,8 @@
             <div id="my-exams" class="form-section">
                 <h2>Exámenes Solicitados</h2>
                 <div class="form-group">
-                    <label>ID de Paciente</label>
-                    <input type="number" id="examsPatientId" placeholder="Ingrese su ID de paciente">
+                    <label>Cédula de Identidad</label>
+                    <input type="text" id="examsPatientId" placeholder="V-12345678 o 12345678">
                 </div>
                 <button class="btn-primary" onclick="loadPatientExams()">Cargar Exámenes</button>
                 <div id="examsResult" style="margin-top: 20px;"></div>
@@ -467,10 +471,11 @@
             }
 
             let patientData = null;
-            let patientId = null;
+            let patientCedula = null;
 
             if (userType === 'new') {
                 patientData = {
+                    cedula: document.getElementById('patientCedula').value,
                     name: document.getElementById('patientName').value,
                     age: parseInt(document.getElementById('patientAge').value),
                     gender: document.getElementById('patientGender').value,
@@ -479,14 +484,14 @@
                     medical_history: document.getElementById('patientHistory').value
                 };
 
-                if (!patientData.name || !patientData.age || !patientData.email) {
-                    showError('Por favor, complete los datos del paciente');
+                if (!patientData.cedula || !patientData.name || !patientData.age || !patientData.email) {
+                    showError('Por favor, complete los datos requeridos (cédula, nombre, edad, email)');
                     return;
                 }
             } else {
-                patientId = document.getElementById('patientId').value;
-                if (!patientId) {
-                    showError('Por favor, ingrese su ID de paciente');
+                patientCedula = document.getElementById('patientCedula').value;
+                if (!patientCedula) {
+                    showError('Por favor, ingrese su cédula de identidad');
                     return;
                 }
             }
@@ -507,7 +512,7 @@
                     }
 
                     const patientResult = await createResponse.json();
-                    patientId = patientResult.id;
+                    patientCedula = patientResult.cedula;
                 }
 
                 // Realizar diagnóstico
@@ -515,7 +520,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        patient_id: parseInt(patientId),
+                        patient_cedula: patientCedula,
                         symptoms: symptoms
                     })
                 });
@@ -568,7 +573,7 @@
                     <div class="diagnosis-card" style="background: #fff3e0;">
                         <strong>⚠️ Examen Médico Requerido</strong>
                         <p style="margin-top: 10px;">Se requiere nuevo examen médico y cita para confirmar el diagnóstico.</p>
-                        <button class="btn-primary" onclick="scheduleExam(${diagnosis.diagnosis_id}, ${diagnosis.patient_id})" style="margin-top: 10px;">Programar Cita</button>
+                        <button class="btn-primary" onclick="scheduleExam(${diagnosis.diagnosis_id}, '${diagnosis.patient_cedula}')" style="margin-top: 10px;">Programar Cita</button>
                     </div>
                 `;
             } else {
@@ -589,14 +594,14 @@
         }
 
         async function loadPatientHistory() {
-            const patientId = document.getElementById('historyPatientId').value;
-            if (!patientId) {
-                showError('Por favor, ingrese el ID de paciente');
+            const patientCedula = document.getElementById('historyPatientId').value;
+            if (!patientCedula) {
+                showError('Por favor, ingrese su cédula de identidad');
                 return;
             }
 
             try {
-                const response = await fetch(`${API_URL}/api/patients/${patientId}/diagnoses`);
+                const response = await fetch(`${API_URL}/api/patients/${patientCedula}/diagnoses`);
                 if (!response.ok) throw new Error('Paciente no encontrado');
 
                 const diagnoses = await response.json();
@@ -626,14 +631,14 @@
         }
 
         async function loadPatientExams() {
-            const patientId = document.getElementById('examsPatientId').value;
-            if (!patientId) {
-                showError('Por favor, ingrese el ID de paciente');
+            const patientCedula = document.getElementById('examsPatientId').value;
+            if (!patientCedula) {
+                showError('Por favor, ingrese su cédula de identidad');
                 return;
             }
 
             try {
-                const response = await fetch(`${API_URL}/api/patients/${patientId}/exams`);
+                const response = await fetch(`${API_URL}/api/patients/${patientCedula}/exams`);
                 if (!response.ok) throw new Error('Paciente no encontrado');
 
                 const exams = await response.json();
