@@ -173,19 +173,37 @@ def create_patient():
         if not all(k in data for k in ['cedula', 'name', 'age', 'email']):
             return jsonify({'error': 'Datos incompletos: cedula, name, age, email requeridos'}), 400
         
-        # Verificar si el paciente ya existe
-        existing = Patient.query.get(data['cedula'])
-        if existing:
+        # Validar que los campos no estén vacíos
+        if not data['cedula'] or not str(data['cedula']).strip():
+            return jsonify({'error': 'La cédula no puede estar vacía'}), 400
+        if not data['name'] or not str(data['name']).strip():
+            return jsonify({'error': 'El nombre no puede estar vacío'}), 400
+        if not data['email'] or not str(data['email']).strip():
+            return jsonify({'error': 'El email no puede estar vacío'}), 400
+        if not data['age'] or data['age'] < 1 or data['age'] > 120:
+            return jsonify({'error': 'La edad debe ser un número entre 1 y 120'}), 400
+        
+        # Validar cedula format
+        cedula_str = str(data['cedula']).strip()
+        
+        # Verificar si el paciente ya existe por cédula
+        existing_cedula = Patient.query.get(cedula_str)
+        if existing_cedula:
             return jsonify({'error': 'Paciente con esta cédula ya existe'}), 400
         
+        # Verificar si el email ya existe
+        existing_email = Patient.query.filter_by(email=data['email'].strip()).first()
+        if existing_email:
+            return jsonify({'error': 'Ya existe un paciente registrado con este email'}), 400
+        
         patient = Patient(
-            cedula=data['cedula'],
-            name=data['name'],
-            age=data['age'],
-            gender=data.get('gender'),
-            email=data['email'],
-            phone=data.get('phone'),
-            medical_history=data.get('medical_history')
+            cedula=cedula_str,
+            name=data['name'].strip(),
+            age=int(data['age']),
+            gender=data.get('gender', '').strip() if data.get('gender') else None,
+            email=data['email'].strip(),
+            phone=data.get('phone', '').strip() if data.get('phone') else None,
+            medical_history=data.get('medical_history', '').strip() if data.get('medical_history') else None
         )
         
         db.session.add(patient)
@@ -197,7 +215,7 @@ def create_patient():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error creando paciente: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f'Error al crear paciente: {str(e)}'}), 500
 
 @app.route('/api/patients/<cedula>', methods=['GET'])
 def get_patient(cedula):

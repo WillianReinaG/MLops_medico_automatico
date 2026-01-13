@@ -475,21 +475,33 @@
 
             if (userType === 'new') {
                 patientData = {
-                    cedula: document.getElementById('patientCedula').value,
-                    name: document.getElementById('patientName').value,
+                    cedula: document.getElementById('patientCedula').value.trim(),
+                    name: document.getElementById('patientName').value.trim(),
                     age: parseInt(document.getElementById('patientAge').value),
                     gender: document.getElementById('patientGender').value,
-                    email: document.getElementById('patientEmail').value,
-                    phone: document.getElementById('patientPhone').value,
-                    medical_history: document.getElementById('patientHistory').value
+                    email: document.getElementById('patientEmail').value.trim(),
+                    phone: document.getElementById('patientPhone').value.trim(),
+                    medical_history: document.getElementById('patientHistory').value.trim()
                 };
 
-                if (!patientData.cedula || !patientData.name || !patientData.age || !patientData.email) {
-                    showError('Por favor, complete los datos requeridos (cédula, nombre, edad, email)');
+                if (!patientData.cedula) {
+                    showError('Por favor, ingrese la cédula de identidad');
+                    return;
+                }
+                if (!patientData.name) {
+                    showError('Por favor, ingrese el nombre completo');
+                    return;
+                }
+                if (!patientData.age || patientData.age < 1 || patientData.age > 120) {
+                    showError('Por favor, ingrese una edad válida (1-120)');
+                    return;
+                }
+                if (!patientData.email || !patientData.email.includes('@')) {
+                    showError('Por favor, ingrese un email válido');
                     return;
                 }
             } else {
-                patientCedula = document.getElementById('patientCedula').value;
+                patientCedula = document.getElementById('patientCedula').value.trim();
                 if (!patientCedula) {
                     showError('Por favor, ingrese su cédula de identidad');
                     return;
@@ -508,7 +520,8 @@
                     });
 
                     if (!createResponse.ok) {
-                        throw new Error('Error al crear paciente');
+                        const errorData = await createResponse.json();
+                        throw new Error(errorData.error || 'Error al crear paciente');
                     }
 
                     const patientResult = await createResponse.json();
