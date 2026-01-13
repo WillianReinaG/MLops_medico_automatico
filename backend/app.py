@@ -560,52 +560,154 @@ def get_patient_exams(cedula):
 
 @app.route('/api/diagnoses/<int:diagnosis_id>/report', methods=['GET'])
 def generate_report(diagnosis_id):
-    """Generar reporte médico"""
+    """Generar reporte médico en PDF"""
     try:
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+        from reportlab.lib import colors
+        from io import BytesIO
+        
         diagnosis = Diagnosis.query.get(diagnosis_id)
         if not diagnosis:
             return jsonify({'error': 'Diagnóstico no encontrado'}), 404
         
         patient = diagnosis.patient
         
-        report = {
-            'report_id': f'RPT-{diagnosis_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}',
-            'generated_at': datetime.utcnow().isoformat(),
-            'patient_info': {
-                'name': patient.name,
-                'age': patient.age,
-                'gender': patient.gender,
-                'email': patient.email
-            },
-            'diagnosis': {
-                'disease': diagnosis.predicted_disease,
-                'confidence': f'{diagnosis.confidence}%',
-                'severity': diagnosis.severity,
-                'symptoms': diagnosis.symptoms
-            },
-            'medical_prescription': {
-                'medications': diagnosis.medications,
-                'instructions': f'Seguir instrucciones médicas para {diagnosis.predicted_disease}',
-                'follow_up': 'Consultar si síntomas persisten en 7 días'
-            }
-        }
+        # Crear PDF en memoria
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=A4)
+        styles = getSampleStyleSheet()
+        story = []
         
-        if diagnosis.requires_exam:
-            report['exam_order'] = {
-                'required': True,
-                'message': 'Se requiere examen médico para confirmación del diagnóstico',
-                'schedule_new_appointment': True
-            }
+        # Título
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#667eea'),
+            spaceAfter=30,
+            alignment=1  # Center
+        )
+        story.append(Paragraph('REPORTE MÉDICO', title_style))
+        story.append(Spacer(1, 0.2*inch))
         
+        # Información del paciente
+        story.append(Paragraph('<b>INFORMACIÓN DEL PACIENTE</b>', styles['Heading2']))
+        patient_data = [
+            ['Cédula:', patient.cedula],
+            ['Nombre:', patient.name],
+            ['Edad:', f'{patient.age} años'],
+            ['Género:', patient.gender or 'No especificado'],
+            ['Email:', patient.email],
+            ['Teléfono:', patient.phone or 'No registrado']
+        ]
+        
+        if patient.weight or patient.height:
+            patient_data.append(['Peso/Altura:', f'{patient.weight} kg / {patient.height} cm' if patient.weight and patient.height else 'No completado'])
+        
+        if patient.blood_pressure_systolic:
+            patient_data.append(['Presión Arterial:', f'{patient.blood_pressure_systolic}/{patient.blood_pressure_diastolic} mmHg'])
+        
+        if patient.temperature:
+            patient_data.append(['Temperatura:', f'{patient.temperature}°C'])
+        
+        patient_table = Table(patient_data, colWidths=[2*inch, 4*inch])
+        patient_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey)
+        ]))
+        story.append(patient_table)
+        story.append(Spacer(1, 0.3*inch))
+        
+        # Diagnóstico
+        story.append(Paragraph('<b>DIAGNÓSTICO</b>', styles['Heading2']))
+        diagnosis_data = [
+            ['Enfermedad:', diagnosis.predicted_disease],
+            ['Confiabilidad:', f'{diagnosis.confidence}%'],
+            ['Gravedad:', diagnosis.severity],
+            ['Síntomas:', diagnosis.symptoms]
+        ]
+        
+        diagnosis_table = Table(diagnosis_data, colWidths=[2*inch, 4*inch])
+        diagnosis_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#e8f5e9')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey)
+        ]))
+        story.append(diagnosis_table)
+        story.append(Spacer(1, 0.3*inch))
+        
+        # Medicamentos
+        if diagnosis.medications and len(diagnosis.medications) > 0:
+            story.append(Paragraph('<b>MEDICAMENTOS RECOMENDADOS</b>', styles['Heading2']))
+            for med in diagnosis.medications:
+                story.append(Paragraph(f'• {med}', styles['BodyText']))
+            story.append(Spacer(1, 0.3*inch))
+        
+        # Pruebas recomendadas
+        if diagnosis.recommended_tests and len(diagnosis.recommended_tests) > 0:
+            story.append(Paragraph('<b>PRUEBAS DE APOYO RECOMENDADAS</b>', styles['Heading2']))
+            for test in diagnosis.recommended_tests:
+                story.append(Paragraph(f'<b>{test["test_type"]}</b>', styles['Normal']))
+                story.append(Paragraph(f'{test["description"]}', styles['BodyText']))
+                story.append(Spacer(1, 0.1*inch))
+            story.append(Spacer(1, 0.2*inch))
+        
+        # Antecedentes médicos si existen
+        if patient.previous_diseases or patient.surgeries or patient.allergies:
+            story.append(Paragraph('<b>ANTECEDENTES MÉDICOS</b>', styles['Heading2']))
+            if patient.previous_diseases:
+                story.append(Paragraph(f'<b>Enfermedades previas:</b> {patient.previous_diseases}', styles['BodyText']))
+            if patient.surgeries:
+                story.append(Paragraph(f'<b>Cirugías:</b> {patient.surgeries}', styles['BodyText']))
+            if patient.allergies:
+                story.append(Paragraph(f'<b>Alergias:</b> {patient.allergies}', styles['BodyText']))
+            story.append(Spacer(1, 0.3*inch))
+        
+        # Pie de página
+        story.append(Spacer(1, 0.5*inch))
+        footer_text = f'Reporte generado: {datetime.utcnow().strftime("%d/%m/%Y %H:%M:%S")}'
+        story.append(Paragraph(footer_text, styles['Italic']))
+        story.append(Paragraph('Este reporte fue generado automáticamente por el Sistema de Diagnóstico Médico MLOps', 
+                             styles['Italic']))
+        
+        # Generar PDF
+        doc.build(story)
+        pdf_buffer.seek(0)
+        
+        # Guardar en BD
         diagnosis.report_generated = True
         db.session.commit()
         
-        logger.info(f"Reporte generado: {report['report_id']}")
-        return jsonify(report), 200
+        logger.info(f"Reporte PDF generado: Diagnóstico {diagnosis_id}")
         
+        # Retornar PDF
+        from flask import send_file
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f'Reporte_Medico_{diagnosis_id}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+        )
+        
+    except ImportError:
+        logger.error("ReportLab no está instalado")
+        return jsonify({'error': 'Generador de PDF no disponible'}), 503
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error generando reporte: {str(e)}")
+        logger.error(f"Error generando PDF: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/patients/<cedula>/diagnoses', methods=['GET'])

@@ -801,8 +801,38 @@
         }
 
         async function scheduleTests(diagnosisId, cedula) {
-            alert(`Pruebas agendadas para el paciente ${cedula}`);
-            // Esta funcionalidad se implementará próximamente
+            try {
+                // Mostrar loading
+                const resultsDiv = document.getElementById('diagnosisResults');
+                const originalContent = resultsDiv.innerHTML;
+                resultsDiv.innerHTML = '<p style="text-align: center;"><em>Descargando reporte médico...</em></p>';
+                
+                // Descargar PDF
+                const response = await fetch(`${API_URL}/api/diagnoses/${diagnosisId}/report`);
+                if (!response.ok) {
+                    throw new Error('Error al generar el reporte');
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Reporte_Medico_${diagnosisId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                
+                // Restaurar contenido después de descargar
+                setTimeout(() => {
+                    resultsDiv.innerHTML = originalContent;
+                }, 1000);
+                
+                alert('Reporte descargado exitosamente. Las pruebas han sido programadas y recibirá una cita en breve.');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al descargar el reporte: ' + error.message);
+            }
         }
 
         async function loadPatientHistory() {
