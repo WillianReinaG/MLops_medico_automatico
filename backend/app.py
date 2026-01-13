@@ -6,7 +6,7 @@ Endpoints para predicción de enfermedades, solicitud de exámenes y generación
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import sys
 import logging
@@ -44,12 +44,38 @@ class Patient(db.Model):
     gender = db.Column(db.String(10))
     email = db.Column(db.String(255), unique=True, nullable=False)
     phone = db.Column(db.String(20))
+    
+    # Datos vitales
+    height = db.Column(db.Float)  # cm
+    weight = db.Column(db.Float)  # kg
+    blood_pressure_systolic = db.Column(db.Integer)  # mmHg
+    blood_pressure_diastolic = db.Column(db.Integer)  # mmHg
+    temperature = db.Column(db.Float)  # °C
+    
+    # Antecedentes médicos
+    previous_diseases = db.Column(db.Text)  # Enfermedades previas
+    surgeries = db.Column(db.Text)  # Cirugías
+    allergies = db.Column(db.Text)  # Alergias
+    medications = db.Column(db.Text)  # Medicamentos actuales
+    
+    # Historia familiar
+    parents_health = db.Column(db.Text)  # Salud de padres
+    
+    # Estilo de vida
+    diet = db.Column(db.Text)  # Descripción de dieta
+    exercise = db.Column(db.String(100))  # Frecuencia: sedentario, moderado, activo
+    smokes = db.Column(db.Boolean, default=False)
+    alcohol_consumption = db.Column(db.String(100))  # Frecuencia: nunca, ocasional, frecuente
+    
+    # Otros datos
     medical_history = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relaciones
     diagnoses = db.relationship('Diagnosis', backref='patient', lazy=True, cascade='all, delete-orphan')
     exams = db.relationship('MedicalExam', backref='patient', lazy=True, cascade='all, delete-orphan')
+    appointments = db.relationship('Appointment', backref='patient', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
         return {
@@ -59,6 +85,19 @@ class Patient(db.Model):
             'gender': self.gender,
             'email': self.email,
             'phone': self.phone,
+            'height': self.height,
+            'weight': self.weight,
+            'blood_pressure': f"{self.blood_pressure_systolic}/{self.blood_pressure_diastolic}" if self.blood_pressure_systolic else None,
+            'temperature': self.temperature,
+            'previous_diseases': self.previous_diseases,
+            'surgeries': self.surgeries,
+            'allergies': self.allergies,
+            'medications': self.medications,
+            'parents_health': self.parents_health,
+            'diet': self.diet,
+            'exercise': self.exercise,
+            'smokes': self.smokes,
+            'alcohol_consumption': self.alcohol_consumption,
             'medical_history': self.medical_history,
             'created_at': self.created_at.isoformat()
         }
@@ -69,25 +108,86 @@ class Diagnosis(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_cedula = db.Column(db.String(20), db.ForeignKey('patients.cedula'), nullable=False)
     symptoms = db.Column(db.Text, nullable=False)
+    symptoms_json = db.Column(db.JSON)  # Síntomas detallados con tiempo e intensidad
     predicted_disease = db.Column(db.String(255), nullable=False)
     confidence = db.Column(db.Float)
     severity = db.Column(db.String(50))
     requires_exam = db.Column(db.Boolean, default=False)
+    recommended_tests = db.Column(db.JSON)  # Pruebas recomendadas si confidence < 84%
     medications = db.Column(db.JSON)
+    recommendations = db.Column(db.Text)
     report_generated = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relaciones
+    medical_tests = db.relationship('MedicalTest', backref='diagnosis', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
         return {
             'id': self.id,
             'patient_cedula': self.patient_cedula,
             'symptoms': self.symptoms,
+            'symptoms_detail': self.symptoms_json,
             'predicted_disease': self.predicted_disease,
             'confidence': self.confidence,
             'severity': self.severity,
             'requires_exam': self.requires_exam,
+            'recommended_tests': self.recommended_tests,
             'medications': self.medications,
+            'recommendations': self.recommendations,
             'report_generated': self.report_generated,
+            'created_at': self.created_at.isoformat()
+        }
+
+class MedicalTest(db.Model):
+    """Pruebas de apoyo recomendadas (sangre, radiografía, ecografía, etc.)"""
+    __tablename__ = 'medical_tests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    diagnosis_id = db.Column(db.Integer, db.ForeignKey('diagnoses.id'), nullable=False)
+    patient_cedula = db.Column(db.String(20), db.ForeignKey('patients.cedula'), nullable=False)
+    test_type = db.Column(db.String(255), nullable=False)  # Análisis de sangre, Radiografía, Ecografía, etc.
+    description = db.Column(db.Text)
+    status = db.Column(db.String(50), default='recommended')  # recommended, scheduled, completed
+    scheduled_date = db.Column(db.DateTime)
+    results = db.Column(db.Text)
+    requested_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'diagnosis_id': self.diagnosis_id,
+            'patient_cedula': self.patient_cedula,
+            'test_type': self.test_type,
+            'description': self.description,
+            'status': self.status,
+            'scheduled_date': self.scheduled_date.isoformat() if self.scheduled_date else None,
+            'results': self.results,
+            'requested_at': self.requested_at.isoformat()
+        }
+
+class Appointment(db.Model):
+    """Citas de seguimiento"""
+    __tablename__ = 'appointments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    patient_cedula = db.Column(db.String(20), db.ForeignKey('patients.cedula'), nullable=False)
+    diagnosis_id = db.Column(db.Integer, db.ForeignKey('diagnoses.id'))
+    scheduled_date = db.Column(db.DateTime, nullable=False)
+    reason = db.Column(db.String(255))  # Seguimiento, Evaluación de pruebas, etc.
+    notes = db.Column(db.Text)
+    status = db.Column(db.String(50), default='scheduled')  # scheduled, completed, cancelled
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'patient_cedula': self.patient_cedula,
+            'diagnosis_id': self.diagnosis_id,
+            'scheduled_date': self.scheduled_date.isoformat(),
+            'reason': self.reason,
+            'notes': self.notes,
+            'status': self.status,
             'created_at': self.created_at.isoformat()
         }
 
@@ -203,6 +303,25 @@ def create_patient():
             gender=data.get('gender', '').strip() if data.get('gender') else None,
             email=data['email'].strip(),
             phone=data.get('phone', '').strip() if data.get('phone') else None,
+            # Datos vitales
+            height=data.get('height'),
+            weight=data.get('weight'),
+            blood_pressure_systolic=data.get('blood_pressure_systolic'),
+            blood_pressure_diastolic=data.get('blood_pressure_diastolic'),
+            temperature=data.get('temperature'),
+            # Antecedentes médicos
+            previous_diseases=data.get('previous_diseases', '').strip() if data.get('previous_diseases') else None,
+            surgeries=data.get('surgeries', '').strip() if data.get('surgeries') else None,
+            allergies=data.get('allergies', '').strip() if data.get('allergies') else None,
+            medications=data.get('medications', '').strip() if data.get('medications') else None,
+            # Historia familiar
+            parents_health=data.get('parents_health', '').strip() if data.get('parents_health') else None,
+            # Estilo de vida
+            diet=data.get('diet', '').strip() if data.get('diet') else None,
+            exercise=data.get('exercise', '').strip() if data.get('exercise') else None,
+            smokes=data.get('smokes', False),
+            alcohol_consumption=data.get('alcohol_consumption', '').strip() if data.get('alcohol_consumption') else None,
+            # Otros datos
             medical_history=data.get('medical_history', '').strip() if data.get('medical_history') else None
         )
         
@@ -254,6 +373,7 @@ def diagnose_patient():
         data = request.json
         patient_cedula = data.get('patient_cedula')
         symptoms = data.get('symptoms', '')
+        symptoms_detail = data.get('symptoms_detail', [])  # Síntomas detallados con tiempo e intensidad
         
         if not symptoms:
             return jsonify({'error': 'Síntomas requeridos'}), 400
@@ -262,6 +382,7 @@ def diagnose_patient():
         predicted_disease = model.predict([symptoms])[0]
         probabilities = model.predict_proba([symptoms])[0]
         max_confidence = float(max(probabilities))
+        confidence_percent = round(max_confidence * 100, 2)
         
         # Información de la enfermedad
         disease_details = disease_info.get(predicted_disease, {
@@ -270,29 +391,65 @@ def diagnose_patient():
             'medications': []
         })
         
+        # Determinar si se requieren pruebas de apoyo (si confianza < 84%)
+        requires_support_tests = confidence_percent < 84
+        recommended_tests = []
+        
+        if requires_support_tests:
+            # Recomendar pruebas de apoyo estándar
+            recommended_tests = [
+                {
+                    'test_type': 'Análisis de sangre',
+                    'description': 'Hemograma completo para confirmar diagnóstico'
+                },
+                {
+                    'test_type': 'Radiografía',
+                    'description': 'Radiografía de tórax o área afectada según síntomas'
+                },
+                {
+                    'test_type': 'Ecografía',
+                    'description': 'Ecografía para evaluación detallada'
+                }
+            ]
+        
         # Crear diagnóstico en BD
         diagnosis = Diagnosis(
             patient_cedula=patient_cedula,
             symptoms=symptoms,
+            symptoms_json=symptoms_detail,
             predicted_disease=predicted_disease,
-            confidence=round(max_confidence * 100, 2),
+            confidence=confidence_percent,
             severity=disease_details.get('severity', 'Desconocida'),
-            requires_exam=disease_details.get('exam_needed', False),
+            requires_exam=disease_details.get('exam_needed', False) or requires_support_tests,
+            recommended_tests=recommended_tests,
             medications=disease_details.get('medications', [])
         )
         
         db.session.add(diagnosis)
+        db.session.flush()  # Para obtener el ID antes de commit
         
-        # Si requiere examen, crear orden
-        if diagnosis.requires_exam:
-            exam = MedicalExam(
+        # Crear pruebas de apoyo si confianza < 84%
+        if requires_support_tests:
+            for test in recommended_tests:
+                medical_test = MedicalTest(
+                    diagnosis_id=diagnosis.id,
+                    patient_cedula=patient_cedula,
+                    test_type=test['test_type'],
+                    description=test['description'],
+                    status='recommended'
+                )
+                db.session.add(medical_test)
+            
+            # Programar cita de seguimiento para revisar pruebas
+            follow_up_date = datetime.utcnow() + timedelta(days=7)
+            appointment = Appointment(
                 patient_cedula=patient_cedula,
                 diagnosis_id=diagnosis.id,
-                exam_type=f'Examen para {predicted_disease}',
-                description=f'Examen recomendado debido a diagnóstico de {predicted_disease}',
-                status='pending'
+                scheduled_date=follow_up_date,
+                reason='Evaluación de pruebas de apoyo',
+                status='scheduled'
             )
-            db.session.add(exam)
+            db.session.add(appointment)
         
         db.session.commit()
         
@@ -301,25 +458,25 @@ def diagnose_patient():
             'patient_cedula': patient_cedula,
             'symptoms': symptoms,
             'predicted_disease': predicted_disease,
-            'confidence': diagnosis.confidence,
+            'confidence': confidence_percent,
             'severity': diagnosis.severity,
             'requires_exam': diagnosis.requires_exam,
             'medications': diagnosis.medications,
             'message': 'Diagnóstico completado'
         }
         
-        if diagnosis.requires_exam:
-            response['medical_exam_required'] = True
-            response['exam_order'] = {
-                'type': f'Examen para {predicted_disease}',
-                'status': 'pending',
-                'appointment_scheduling_required': True,
-                'message': 'Se requiere nuevo examen médico y cita para confirmar diagnóstico'
+        if requires_support_tests:
+            response['low_confidence'] = True
+            response['confidence_message'] = f'Confiabilidad {confidence_percent}% < 84%. Se requieren pruebas de apoyo.'
+            response['recommended_tests'] = recommended_tests
+            response['follow_up_appointment'] = {
+                'scheduled_date': follow_up_date.isoformat(),
+                'reason': 'Evaluación de pruebas de apoyo'
             }
         else:
-            response['message'] = 'Diagnóstico claro. Dicta médica generada.'
+            response['message'] = 'Diagnóstico confiable. Dicta médica generada.'
         
-        logger.info(f"Diagnóstico realizado para paciente {patient_cedula}: {predicted_disease}")
+        logger.info(f"Diagnóstico realizado para paciente {patient_cedula}: {predicted_disease} ({confidence_percent}%)")
         return jsonify(response), 200
         
     except Exception as e:

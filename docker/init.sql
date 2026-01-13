@@ -2,6 +2,8 @@
 -- Las tablas se crean automáticamente desde la aplicación Flask
 
 -- Limpiar tablas si existen
+DROP TABLE IF EXISTS appointments CASCADE;
+DROP TABLE IF EXISTS medical_tests CASCADE;
 DROP TABLE IF EXISTS medical_exams CASCADE;
 DROP TABLE IF EXISTS diagnoses CASCADE;
 DROP TABLE IF EXISTS patients CASCADE;

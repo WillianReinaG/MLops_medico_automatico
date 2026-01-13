@@ -333,6 +333,9 @@
                 <!-- Nuevo Paciente -->
                 <div id="newPatientForm" style="display: none;">
                     <h3>Registro de Nuevo Paciente</h3>
+                    
+                    <!-- Datos Personales -->
+                    <h4 style="margin-top: 20px; color: #667eea;">Información Personal</h4>
                     <div class="form-group">
                         <label>Cédula de Identidad *</label>
                         <input type="text" id="patientCedula" placeholder="V-12345678 o 12345678">
@@ -356,17 +359,99 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Email *</label>
-                        <input type="email" id="patientEmail" placeholder="juan@example.com">
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="patientEmail" placeholder="juan@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono</label>
+                            <input type="tel" id="patientPhone" placeholder="+34 912345678">
+                        </div>
+                    </div>
+                    
+                    <!-- Datos Vitales -->
+                    <h4 style="margin-top: 20px; color: #667eea;">Datos Vitales</h4>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Peso (kg)</label>
+                            <input type="number" id="patientWeight" placeholder="75" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Altura (cm)</label>
+                            <input type="number" id="patientHeight" placeholder="175" step="0.1">
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Temperatura (°C)</label>
+                            <input type="number" id="patientTemperature" placeholder="36.5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Presión Arterial Sistólica (mmHg)</label>
+                            <input type="number" id="patientSystolic" placeholder="120">
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Teléfono</label>
-                        <input type="tel" id="patientPhone" placeholder="+34 912345678">
+                        <label>Presión Arterial Diastólica (mmHg)</label>
+                        <input type="number" id="patientDiastolic" placeholder="80">
+                    </div>
+                    
+                    <!-- Antecedentes Médicos -->
+                    <h4 style="margin-top: 20px; color: #667eea;">Antecedentes Médicos</h4>
+                    <div class="form-group">
+                        <label>Enfermedades Previas</label>
+                        <textarea id="patientPreviousDiseases" placeholder="Diabetes, Hipertensión, etc."></textarea>
                     </div>
                     <div class="form-group">
-                        <label>Historial Médico</label>
-                        <textarea id="patientHistory" placeholder="Alergias, medicamentos actuales, enfermedades previas..."></textarea>
+                        <label>Cirugías Previas</label>
+                        <textarea id="patientSurgeries" placeholder="Apendicectomía, Hernia, etc."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Alergias</label>
+                        <textarea id="patientAllergies" placeholder="Penicilina, Mariscos, etc."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Medicamentos Actuales</label>
+                        <textarea id="patientMedications" placeholder="Nombre y dosis de medicamentos que toma..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Salud de Padres/Antecedentes Familiares</label>
+                        <textarea id="patientParentsHealth" placeholder="Enfermedades hereditarias, condiciones familiares..."></textarea>
+                    </div>
+                    
+                    <!-- Estilo de Vida -->
+                    <h4 style="margin-top: 20px; color: #667eea;">Estilo de Vida</h4>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Actividad Física</label>
+                            <select id="patientExercise">
+                                <option value="">Seleccionar</option>
+                                <option value="sedentario">Sedentario</option>
+                                <option value="moderado">Moderado</option>
+                                <option value="activo">Muy Activo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Consumo de Alcohol</label>
+                            <select id="patientAlcohol">
+                                <option value="">Seleccionar</option>
+                                <option value="nunca">Nunca</option>
+                                <option value="ocasional">Ocasional</option>
+                                <option value="frecuente">Frecuente</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>¿Fuma?</label>
+                        <select id="patientSmokes">
+                            <option value="false">No</option>
+                            <option value="true">Sí</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción de Dieta</label>
+                        <textarea id="patientDiet" placeholder="Tipo de alimentación, restricciones, etc."></textarea>
                     </div>
                 </div>
 
@@ -378,12 +463,37 @@
                     </div>
                 </div>
 
-                <!-- Síntomas -->
+                <!-- Síntomas Detallados -->
                 <h3 style="margin-top: 30px;">Síntomas Presentados</h3>
                 <div class="form-group">
-                    <label>Describa sus síntomas *</label>
-                    <textarea id="symptoms" placeholder="Ejemplo: tengo fiebre, dolor de cabeza y malestar general..."></textarea>
+                    <label>Describa sus síntomas principales *</label>
+                    <textarea id="symptoms" placeholder="Ejemplo: tengo fiebre, dolor de cabeza y malestar general..." required></textarea>
                 </div>
+                
+                <h4 style="margin-top: 20px; color: #667eea;">Detalles de Síntomas</h4>
+                <div id="symptomsContainer">
+                    <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                        <div class="grid">
+                            <div class="form-group">
+                                <label>Síntoma 1</label>
+                                <input type="text" placeholder="Ej: Fiebre" class="symptomInput">
+                            </div>
+                            <div class="form-group">
+                                <label>Intensidad</label>
+                                <select class="symptomIntensity">
+                                    <option value="leve">Leve</option>
+                                    <option value="moderada">Moderada</option>
+                                    <option value="severa">Severa</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>¿Desde hace cuántos días?</label>
+                            <input type="number" placeholder="5" min="1" class="symptomDays">
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-secondary" onclick="addSymptomField()" style="margin-bottom: 20px;">+ Agregar otro síntoma</button>
 
                 <div class="button-group">
                     <button class="btn-primary" onclick="submitDiagnosis()">Solicitar Diagnóstico</button>
@@ -470,6 +580,21 @@
                 return;
             }
 
+            // Recolectar síntomas detallados
+            const symptomsDetail = [];
+            document.querySelectorAll('#symptomsContainer > div').forEach(div => {
+                const input = div.querySelector('.symptomInput');
+                const intensity = div.querySelector('.symptomIntensity');
+                const days = div.querySelector('.symptomDays');
+                if (input && input.value.trim()) {
+                    symptomsDetail.push({
+                        symptom: input.value.trim(),
+                        intensity: intensity ? intensity.value : 'moderada',
+                        days_ago: parseInt(days ? days.value : 0)
+                    });
+                }
+            });
+
             let patientData = null;
             let patientCedula = null;
 
@@ -481,7 +606,23 @@
                     gender: document.getElementById('patientGender').value,
                     email: document.getElementById('patientEmail').value.trim(),
                     phone: document.getElementById('patientPhone').value.trim(),
-                    medical_history: document.getElementById('patientHistory').value.trim()
+                    // Datos vitales
+                    weight: parseFloat(document.getElementById('patientWeight').value) || null,
+                    height: parseFloat(document.getElementById('patientHeight').value) || null,
+                    temperature: parseFloat(document.getElementById('patientTemperature').value) || null,
+                    blood_pressure_systolic: parseInt(document.getElementById('patientSystolic').value) || null,
+                    blood_pressure_diastolic: parseInt(document.getElementById('patientDiastolic').value) || null,
+                    // Antecedentes médicos
+                    previous_diseases: document.getElementById('patientPreviousDiseases').value.trim(),
+                    surgeries: document.getElementById('patientSurgeries').value.trim(),
+                    allergies: document.getElementById('patientAllergies').value.trim(),
+                    medications: document.getElementById('patientMedications').value.trim(),
+                    parents_health: document.getElementById('patientParentsHealth').value.trim(),
+                    // Estilo de vida
+                    exercise: document.getElementById('patientExercise').value,
+                    alcohol_consumption: document.getElementById('patientAlcohol').value,
+                    smokes: document.getElementById('patientSmokes').value === 'true',
+                    diet: document.getElementById('patientDiet').value.trim()
                 };
 
                 if (!patientData.cedula) {
@@ -534,7 +675,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         patient_cedula: patientCedula,
-                        symptoms: symptoms
+                        symptoms: symptoms,
+                        symptoms_detail: symptomsDetail
                     })
                 });
 
@@ -561,7 +703,7 @@
             }[diagnosis.severity] || 'status-moderate';
 
             let html = `
-                <div class="result result-${diagnosis.requires_exam ? 'warning' : 'success'} show">
+                <div class="result result-${diagnosis.low_confidence ? 'warning' : 'success'} show">
                     <h3>Resultado del Diagnóstico</h3>
                     <div class="diagnosis-card">
                         <p><strong>Enfermedad Predicha:</strong> ${diagnosis.predicted_disease}</p>
@@ -569,6 +711,38 @@
                         <p><strong>Gravedad:</strong> <span class="status-badge ${severityClass}">${diagnosis.severity}</span></p>
                     </div>
             `;
+
+            // Si la confiabilidad es baja
+            if (diagnosis.low_confidence) {
+                html += `
+                    <div class="diagnosis-card" style="background: #fff3e0; border-left: 4px solid #ff9800;">
+                        <strong style="color: #ff9800;">⚠️ Confiabilidad Baja (${diagnosis.confidence}% &lt; 84%)</strong>
+                        <p style="margin-top: 10px;">Se requieren pruebas de apoyo para confirmar el diagnóstico.</p>
+                `;
+                
+                if (diagnosis.recommended_tests && diagnosis.recommended_tests.length > 0) {
+                    html += `<strong style="display: block; margin-top: 15px;">Pruebas Recomendadas:</strong><ul class="medication-list">`;
+                    diagnosis.recommended_tests.forEach(test => {
+                        html += `<li><strong>${test.test_type}</strong><br><small>${test.description}</small></li>`;
+                    });
+                    html += `</ul>`;
+                }
+                
+                if (diagnosis.follow_up_appointment) {
+                    const appointmentDate = new Date(diagnosis.follow_up_appointment.scheduled_date);
+                    html += `
+                        <p style="margin-top: 15px; color: #ff9800;">
+                            <strong>Cita de Seguimiento Programada:</strong><br>
+                            ${appointmentDate.toLocaleDateString('es-ES')} a las ${appointmentDate.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}
+                        </p>
+                    `;
+                }
+                
+                html += `
+                        <button class="btn-primary" onclick="scheduleTests(${diagnosis.diagnosis_id}, '${diagnosis.patient_cedula}')" style="margin-top: 10px;">Agendar Pruebas</button>
+                    </div>
+                `;
+            }
 
             if (diagnosis.medications && diagnosis.medications.length > 0) {
                 html += `
@@ -581,15 +755,7 @@
                 `;
             }
 
-            if (diagnosis.requires_exam) {
-                html += `
-                    <div class="diagnosis-card" style="background: #fff3e0;">
-                        <strong>⚠️ Examen Médico Requerido</strong>
-                        <p style="margin-top: 10px;">Se requiere nuevo examen médico y cita para confirmar el diagnóstico.</p>
-                        <button class="btn-primary" onclick="scheduleExam(${diagnosis.diagnosis_id}, '${diagnosis.patient_cedula}')" style="margin-top: 10px;">Programar Cita</button>
-                    </div>
-                `;
-            } else {
+            if (!diagnosis.low_confidence) {
                 html += `
                     <div class="diagnosis-card" style="background: #e8f5e9;">
                         <strong>✓ Diagnóstico Confirmado</strong>
@@ -599,11 +765,44 @@
             }
 
             html += `
-                <button class="btn-primary" onclick="generateReport(${diagnosis.diagnosis_id})" style="margin-top: 15px;">Descargar Reporte</button>
+                <button class="btn-primary" onclick="generateReport(${diagnosis.diagnosis_id})" style="margin-top: 15px;">📄 Descargar Reporte PDF</button>
             </div>
             `;
 
             resultDiv.innerHTML = html;
+        }
+
+        function addSymptomField() {
+            const container = document.getElementById('symptomsContainer');
+            const count = container.children.length + 1;
+            const html = `
+                <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Síntoma ${count}</label>
+                            <input type="text" placeholder="Ej: Tos" class="symptomInput">
+                        </div>
+                        <div class="form-group">
+                            <label>Intensidad</label>
+                            <select class="symptomIntensity">
+                                <option value="leve">Leve</option>
+                                <option value="moderada">Moderada</option>
+                                <option value="severa">Severa</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>¿Desde hace cuántos días?</label>
+                        <input type="number" placeholder="3" min="1" class="symptomDays">
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        }
+
+        async function scheduleTests(diagnosisId, cedula) {
+            alert(`Pruebas agendadas para el paciente ${cedula}`);
+            // Esta funcionalidad se implementará próximamente
         }
 
         async function loadPatientHistory() {
