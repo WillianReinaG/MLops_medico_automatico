@@ -124,6 +124,7 @@ class Diagnosis(db.Model):
     
     def to_dict(self):
         return {
+            'diagnosis_id': self.id,
             'id': self.id,
             'patient_cedula': self.patient_cedula,
             'symptoms': self.symptoms,

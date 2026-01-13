@@ -862,6 +862,11 @@
                             <p><strong>Enfermedad:</strong> ${diag.predicted_disease}</p>
                             <p><strong>Confianza:</strong> ${diag.confidence}%</p>
                             <p><strong>Gravedad:</strong> ${diag.severity}</p>
+                            <p><strong>Síntomas:</strong> ${diag.symptoms}</p>
+                            <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button class="btn-primary" onclick="downloadDiagnosisReport(${diag.diagnosis_id})" style="padding: 8px 15px; font-size: 0.9em;">📄 Descargar Reporte</button>
+                                <button class="btn-secondary" onclick="reloadDiagnosisDetails(${diag.diagnosis_id}, '${diag.patient_cedula}')" style="padding: 8px 15px; font-size: 0.9em;">🔄 Recargar Detalles</button>
+                            </div>
                         </div>
                     `;
                 });
@@ -912,21 +917,79 @@
 
         async function generateReport(diagnosisId) {
             try {
+                showLoading(true);
                 const response = await fetch(`${API_URL}/api/diagnoses/${diagnosisId}/report`);
                 if (!response.ok) throw new Error('Error generando reporte');
 
-                const report = await response.json();
-                const reportText = JSON.stringify(report, null, 2);
-                const blob = new Blob([reportText], { type: 'application/json' });
+                const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `reporte_medico_${diagnosisId}.json`;
+                a.download = `Reporte_Medico_${diagnosisId}.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
+                showLoading(false);
             } catch (error) {
+                showLoading(false);
+                showError(`Error: ${error.message}`);
+            }
+        }
+
+        async function downloadDiagnosisReport(diagnosisId) {
+            """Descargar reporte PDF de un diagnóstico del historial"""
+            try {
+                showLoading(true);
+                const response = await fetch(`${API_URL}/api/diagnoses/${diagnosisId}/report`);
+                if (!response.ok) {
+                    throw new Error('Error al generar el reporte');
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Reporte_Medico_${diagnosisId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                
+                showLoading(false);
+                alert('Reporte descargado exitosamente');
+            } catch (error) {
+                showLoading(false);
+                showError(`Error al descargar reporte: ${error.message}`);
+            }
+        }
+
+        async function reloadDiagnosisDetails(diagnosisId, cedula) {
+            """Cargar y mostrar los detalles completos del diagnóstico"""
+            try {
+                showLoading(true);
+                const response = await fetch(`${API_URL}/api/patients/${cedula}/diagnoses`);
+                if (!response.ok) {
+                    throw new Error('Error al cargar diagnósticos');
+                }
+                
+                const diagnoses = await response.json();
+                const diagnosis = diagnoses.find(d => d.diagnosis_id === diagnosisId);
+                
+                if (!diagnosis) {
+                    throw new Error('Diagnóstico no encontrado');
+                }
+                
+                showLoading(false);
+                displayDiagnosisResult(diagnosis);
+                
+                // Scrollear al resultado
+                setTimeout(() => {
+                    document.getElementById('diagnosisResult').scrollIntoView({ behavior: 'smooth' });
+                }, 200);
+                
+            } catch (error) {
+                showLoading(false);
                 showError(`Error: ${error.message}`);
             }
         }
