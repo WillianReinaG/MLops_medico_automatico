@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Diagnóstico Médico - MLOps</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result-success {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            color: #2e7d32;
+        }
+
+        .result-warning {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+            color: #e65100;
+        }
+
+        .result-info {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            color: #1565c0;
+        }
+
+        .diagnosis-card {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .diagnosis-card strong {
+            color: #667eea;
+        }
+
+        .medication-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .medication-list li {
+            padding: 8px;
+            background: white;
+            margin: 5px 0;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status-high {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status-moderate {
+            background: #fff8e1;
+            color: #f57f17;
+        }
+
+        .status-low {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .error {
+            background: #ffebee;
+            border: 2px solid #f44336;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .api-status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .api-status.connected {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+        }
+
+        .api-status.disconnected {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Sistema de Diagnóstico Médico</h1>
+            <p>MLOps - Predicción inteligente de enfermedades basada en síntomas</p>
+        </div>
+
+        <div class="content">
+            <div id="apiStatus" class="api-status disconnected">
+                Conectando con API...
+            </div>
+
+            <div class="tabs">
+                <button class="tab-button active" onclick="switchTab('new-diagnosis')">Nuevo Diagnóstico</button>
+                <button class="tab-button" onclick="switchTab('patient-history')">Historial de Paciente</button>
+                <button class="tab-button" onclick="switchTab('my-exams')">Mis Exámenes</button>
+            </div>
+
+            <!-- Tab 1: Nuevo Diagnóstico -->
+            <div id="new-diagnosis" class="form-section active">
+                <h2>Solicitar Diagnóstico</h2>
+
+                <div class="form-group">
+                    <label>Tipo de Usuario</label>
+                    <select id="userType" onchange="handleUserTypeChange()">
+                        <option value="existing">Paciente Existente</option>
+                        <option value="new">Nuevo Paciente</option>
+                    </select>
+                </div>
+
+                <!-- Nuevo Paciente -->
+                <div id="newPatientForm" style="display: none;">
+                    <h3>Registro de Nuevo Paciente</h3>
+                    <div class="form-group">
+                        <label>Nombre Completo *</label>
+                        <input type="text" id="patientName" placeholder="Juan Pérez García">
+                    </div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Edad *</label>
+                            <input type="number" id="patientAge" placeholder="35" min="1" max="120">
+                        </div>
+                        <div class="form-group">
+                            <label>Género</label>
+                            <select id="patientGender">
+                                <option value="">Seleccionar</option>
+                                <option value="M">Masculino</option>
+                                <option value="F">Femenino</option>
+                                <option value="O">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" id="patientEmail" placeholder="juan@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="tel" id="patientPhone" placeholder="+34 912345678">
+                    </div>
+                    <div class="form-group">
+                        <label>Historial Médico</label>
+                        <textarea id="patientHistory" placeholder="Alergias, medicamentos actuales, enfermedades previas..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Paciente Existente -->
+                <div id="existingPatientForm">
+                    <div class="form-group">
+                        <label>ID de Paciente *</label>
+                        <input type="number" id="patientId" placeholder="Ingrese su ID de paciente">
+                    </div>
+                </div>
+
+                <!-- Síntomas -->
+                <h3 style="margin-top: 30px;">Síntomas Presentados</h3>
+                <div class="form-group">
+                    <label>Describa sus síntomas *</label>
+                    <textarea id="symptoms" placeholder="Ejemplo: tengo fiebre, dolor de cabeza y malestar general..."></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="submitDiagnosis()">Solicitar Diagnóstico</button>
+                    <button class="btn-secondary" onclick="resetForm()">Limpiar Formulario</button>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Analizando síntomas y generando diagnóstico...</p>
+                </div>
+
+                <div id="diagnosisResult" class="result"></div>
+            </div>
+
+            <!-- Tab 2: Historial de Paciente -->
+            <div id="patient-history" class="form-section">
+                <h2>Historial Médico</h2>
+                <div class="form-group">
+                    <label>ID de Paciente</label>
+                    <input type="number" id="historyPatientId" placeholder="Ingrese su ID de paciente">
+                </div>
+                <button class="btn-primary" onclick="loadPatientHistory()">Cargar Historial</button>
+                <div id="historyResult" style="margin-top: 20px;"></div>
+            </div>
+
+            <!-- Tab 3: Mis Exámenes -->
+            <div id="my-exams" class="form-section">
+                <h2>Exámenes Solicitados</h2>
+                <div class="form-group">
+                    <label>ID de Paciente</label>
+                    <input type="number" id="examsPatientId" placeholder="Ingrese su ID de paciente">
+                </div>
+                <button class="btn-primary" onclick="loadPatientExams()">Cargar Exámenes</button>
+                <div id="examsResult" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = localStorage.getItem('apiUrl') || 'http://localhost:5000';
+
+        // Verificar conexión con API
+        async function checkApiConnection() {
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                updateApiStatus(true);
+            } catch (error) {
+                updateApiStatus(false);
+            }
+        }
+
+        function updateApiStatus(connected) {
+            const statusDiv = document.getElementById('apiStatus');
+            if (connected) {
+                statusDiv.className = 'api-status connected';
+                statusDiv.textContent = '✓ Conectado a API Médica';
+            } else {
+                statusDiv.className = 'api-status disconnected';
+                statusDiv.textContent = '✗ Desconectado - Verifica la conexión de red';
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.form-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function handleUserTypeChange() {
+            const userType = document.getElementById('userType').value;
+            document.getElementById('newPatientForm').style.display = userType === 'new' ? 'block' : 'none';
+            document.getElementById('existingPatientForm').style.display = userType === 'existing' ? 'block' : 'none';
+        }
+
+        async function submitDiagnosis() {
+            const userType = document.getElementById('userType').value;
+            const symptoms = document.getElementById('symptoms').value;
+
+            if (!symptoms.trim()) {
+                showError('Por favor, describa los síntomas');
+                return;
+            }
+
+            let patientData = null;
+            let patientId = null;
+
+            if (userType === 'new') {
+                patientData = {
+                    name: document.getElementById('patientName').value,
+                    age: parseInt(document.getElementById('patientAge').value),
+                    gender: document.getElementById('patientGender').value,
+                    email: document.getElementById('patientEmail').value,
+                    phone: document.getElementById('patientPhone').value,
+                    medical_history: document.getElementById('patientHistory').value
+                };
+
+                if (!patientData.name || !patientData.age || !patientData.email) {
+                    showError('Por favor, complete los datos del paciente');
+                    return;
+                }
+            } else {
+                patientId = document.getElementById('patientId').value;
+                if (!patientId) {
+                    showError('Por favor, ingrese su ID de paciente');
+                    return;
+                }
+            }
+
+            showLoading(true);
+
+            try {
+                // Si es nuevo paciente, crearlo primero
+                if (userType === 'new') {
+                    const createResponse = await fetch(`${API_URL}/api/patients`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(patientData)
+                    });
+
+                    if (!createResponse.ok) {
+                        throw new Error('Error al crear paciente');
+                    }
+
+                    const patientResult = await createResponse.json();
+                    patientId = patientResult.id;
+                }
+
+                // Realizar diagnóstico
+                const diagResponse = await fetch(`${API_URL}/api/diagnose`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patient_id: parseInt(patientId),
+                        symptoms: symptoms
+                    })
+                });
+
+                if (!diagResponse.ok) {
+                    throw new Error('Error al realizar diagnóstico');
+                }
+
+                const diagnosis = await diagResponse.json();
+                displayDiagnosisResult(diagnosis);
+
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displayDiagnosisResult(diagnosis) {
+            const resultDiv = document.getElementById('diagnosisResult');
+            const severityClass = {
+                'Alta': 'status-high',
+                'Moderada': 'status-moderate',
+                'Leve': 'status-low'
+            }[diagnosis.severity] || 'status-moderate';
+
+            let html = `
+                <div class="result result-${diagnosis.requires_exam ? 'warning' : 'success'} show">
+                    <h3>Resultado del Diagnóstico</h3>
+                    <div class="diagnosis-card">
+                        <p><strong>Enfermedad Predicha:</strong> ${diagnosis.predicted_disease}</p>
+                        <p><strong>Confianza:</strong> ${diagnosis.confidence}%</p>
+                        <p><strong>Gravedad:</strong> <span class="status-badge ${severityClass}">${diagnosis.severity}</span></p>
+                    </div>
+            `;
+
+            if (diagnosis.medications && diagnosis.medications.length > 0) {
+                html += `
+                    <div class="diagnosis-card">
+                        <strong>Medicamentos Recomendados:</strong>
+                        <ul class="medication-list">
+                            ${diagnosis.medications.map(med => `<li>${med}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            if (diagnosis.requires_exam) {
+                html += `
+                    <div class="diagnosis-card" style="background: #fff3e0;">
+                        <strong>⚠️ Examen Médico Requerido</strong>
+                        <p style="margin-top: 10px;">Se requiere nuevo examen médico y cita para confirmar el diagnóstico.</p>
+                        <button class="btn-primary" onclick="scheduleExam(${diagnosis.diagnosis_id}, ${diagnosis.patient_id})" style="margin-top: 10px;">Programar Cita</button>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="diagnosis-card" style="background: #e8f5e9;">
+                        <strong>✓ Diagnóstico Confirmado</strong>
+                        <p style="margin-top: 10px;">Se ha generado una dicta médica con los medicamentos recomendados.</p>
+                    </div>
+                `;
+            }
+
+            html += `
+                <button class="btn-primary" onclick="generateReport(${diagnosis.diagnosis_id})" style="margin-top: 15px;">Descargar Reporte</button>
+            </div>
+            `;
+
+            resultDiv.innerHTML = html;
+        }
+
+        async function loadPatientHistory() {
+            const patientId = document.getElementById('historyPatientId').value;
+            if (!patientId) {
+                showError('Por favor, ingrese el ID de paciente');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/patients/${patientId}/diagnoses`);
+                if (!response.ok) throw new Error('Paciente no encontrado');
+
+                const diagnoses = await response.json();
+                const historyDiv = document.getElementById('historyResult');
+
+                if (diagnoses.length === 0) {
+                    historyDiv.innerHTML = '<p>No hay diagnósticos registrados para este paciente.</p>';
+                    return;
+                }
+
+                let html = '<h3>Diagnósticos Previos</h3>';
+                diagnoses.forEach(diag => {
+                    html += `
+                        <div class="diagnosis-card">
+                            <p><strong>Fecha:</strong> ${new Date(diag.created_at).toLocaleDateString('es-ES')}</p>
+                            <p><strong>Enfermedad:</strong> ${diag.predicted_disease}</p>
+                            <p><strong>Confianza:</strong> ${diag.confidence}%</p>
+                            <p><strong>Gravedad:</strong> ${diag.severity}</p>
+                        </div>
+                    `;
+                });
+
+                historyDiv.innerHTML = html;
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+            }
+        }
+
+        async function loadPatientExams() {
+            const patientId = document.getElementById('examsPatientId').value;
+            if (!patientId) {
+                showError('Por favor, ingrese el ID de paciente');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/patients/${patientId}/exams`);
+                if (!response.ok) throw new Error('Paciente no encontrado');
+
+                const exams = await response.json();
+                const examsDiv = document.getElementById('examsResult');
+
+                if (exams.length === 0) {
+                    examsDiv.innerHTML = '<p>No hay exámenes solicitados para este paciente.</p>';
+                    return;
+                }
+
+                let html = '<h3>Exámenes Solicitados</h3>';
+                exams.forEach(exam => {
+                    const statusColor = exam.status === 'completed' ? '#4caf50' : exam.status === 'scheduled' ? '#ff9800' : '#2196f3';
+                    html += `
+                        <div class="diagnosis-card" style="border-left-color: ${statusColor}">
+                            <p><strong>Tipo:</strong> ${exam.exam_type}</p>
+                            <p><strong>Estado:</strong> ${exam.status}</p>
+                            <p><strong>Solicitado:</strong> ${new Date(exam.requested_at).toLocaleDateString('es-ES')}</p>
+                            ${exam.appointment_date ? `<p><strong>Cita:</strong> ${new Date(exam.appointment_date).toLocaleDateString('es-ES')}</p>` : ''}
+                        </div>
+                    `;
+                });
+
+                examsDiv.innerHTML = html;
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+            }
+        }
+
+        async function generateReport(diagnosisId) {
+            try {
+                const response = await fetch(`${API_URL}/api/diagnoses/${diagnosisId}/report`);
+                if (!response.ok) throw new Error('Error generando reporte');
+
+                const report = await response.json();
+                const reportText = JSON.stringify(report, null, 2);
+                const blob = new Blob([reportText], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reporte_medico_${diagnosisId}.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+            }
+        }
+
+        function showError(message) {
+            const resultDiv = document.getElementById('diagnosisResult');
+            resultDiv.innerHTML = `<div class="error">${message}</div>`;
+            resultDiv.classList.add('show');
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function resetForm() {
+            document.getElementById('userType').value = 'existing';
+            document.getElementById('patientId').value = '';
+            document.getElementById('symptoms').value = '';
+            document.getElementById('patientName').value = '';
+            document.getElementById('patientAge').value = '';
+            document.getElementById('patientEmail').value = '';
+            handleUserTypeChange();
+        }
+
+        // Inicializar
+        window.addEventListener('load', checkApiConnection);
+        setInterval(checkApiConnection, 30000); // Verificar cada 30 segundos
+    </script>
+</body>
+</html>
