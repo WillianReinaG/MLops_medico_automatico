@@ -253,6 +253,7 @@ def require_patient_cedula(f):
 # ==================== ENDPOINTS ====================
 
 @app.route('/health', methods=['GET'])
+@app.route('/api/health', methods=['GET'])
 def health_check():
     """Verificar salud de la API"""
     return jsonify({
