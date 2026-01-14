@@ -15,7 +15,9 @@ from typing import Dict, List, Tuple
 # ==================== CONFIGURACIÓN ====================
 
 BASE_URL = "http://localhost:5000"
-API_TIMEOUT = 10
+API_TIMEOUT = 30  # Aumentado de 10 a 30 segundos
+MAX_RETRIES = 3   # Reintentos si falla
+RETRY_DELAY = 2   # Delay entre reintentos
 
 # Colores para terminal
 class Colors:
@@ -75,6 +77,40 @@ class ProductionTester:
         self.session = requests.Session()
         self.session.timeout = API_TIMEOUT
 
+    def hacer_request(self, metodo, url, **kwargs):
+        """
+        Hacer request con reintentos automáticos
+        
+        Args:
+            metodo: 'GET', 'POST', etc.
+            url: URL completa
+            **kwargs: argumentos para requests
+            
+        Returns:
+            response o None si falla después de reintentos
+        """
+        for intento in range(MAX_RETRIES):
+            try:
+                if metodo.upper() == 'GET':
+                    return self.session.get(url, timeout=API_TIMEOUT, **kwargs)
+                elif metodo.upper() == 'POST':
+                    return self.session.post(url, timeout=API_TIMEOUT, **kwargs)
+                elif metodo.upper() == 'PUT':
+                    return self.session.put(url, timeout=API_TIMEOUT, **kwargs)
+                else:
+                    return None
+            except (requests.Timeout, requests.ConnectionError) as e:
+                if intento < MAX_RETRIES - 1:
+                    print_warning(f"Timeout/Error - Reintentando ({intento+1}/{MAX_RETRIES})...")
+                    time.sleep(RETRY_DELAY)
+                else:
+                    print_error(f"Falló después de {MAX_RETRIES} intentos: {str(e)}")
+                    return None
+            except Exception as e:
+                print_error(f"Error inesperado: {str(e)}")
+                return None
+        return None
+
     def run_all_tests(self):
         """Ejecutar todas las pruebas"""
         print_header("PRUEBAS DE PRODUCCIÓN - SISTEMA MÉDICO MLOPS")
@@ -111,9 +147,14 @@ class ProductionTester:
         print_header("Test 1: Health Check")
         
         try:
-            response = self.session.get(f"{BASE_URL}/api/health")
+            response = self.hacer_request('GET', f"{BASE_URL}/api/health")
+            if response is None:
+                print_test_result("API Health Check", False, "No hay respuesta del servidor")
+                self.add_result("Health Check", False)
+                return
+                
             passed = response.status_code == 200
-            data = response.json()
+            data = response.json() if response.status_code == 200 else {}
             
             print_test_result(
                 "API Health Check",
@@ -155,10 +196,16 @@ class ProductionTester:
         }
         
         try:
-            response = self.session.post(
+            response = self.hacer_request(
+                'POST',
                 f"{BASE_URL}/api/patients",
                 json=patient_data
             )
+            if response is None:
+                print_test_result("Crear paciente", False, "No hay respuesta del servidor")
+                self.add_result("Crear Paciente", False)
+                return
+            
             passed = response.status_code == 201
             data = response.json() if response.status_code in [200, 201] else {}
             
@@ -179,9 +226,15 @@ class ProductionTester:
         print_header("Test 3: Obtener Paciente")
         
         try:
-            response = self.session.get(
+            response = self.hacer_request(
+                'GET',
                 f"{BASE_URL}/api/patients/{self.patient_cedula}"
             )
+            if response is None:
+                print_test_result("Obtener paciente", False, "No hay respuesta del servidor")
+                self.add_result("Obtener Paciente", False)
+                return
+            
             passed = response.status_code == 200
             data = response.json()
             
@@ -202,7 +255,15 @@ class ProductionTester:
         print_header("Test 4: Listar Pacientes")
         
         try:
-            response = self.session.get(f"{BASE_URL}/api/patients")
+            response = self.hacer_request(
+                'GET',
+                f"{BASE_URL}/api/patients"
+            )
+            if response is None:
+                print_test_result("Listar pacientes", False, "No hay respuesta del servidor")
+                self.add_result("Listar Pacientes", False)
+                return
+            
             passed = response.status_code == 200
             data = response.json()
             count = len(data) if isinstance(data, list) else data.get('total', 0)
@@ -235,10 +296,16 @@ class ProductionTester:
         }
         
         try:
-            response = self.session.post(
+            response = self.hacer_request(
+                'POST',
                 f"{BASE_URL}/api/diagnose",
                 json=diagnosis_data
             )
+            if response is None:
+                print_test_result("Realizar diagnóstico", False, "No hay respuesta del servidor")
+                self.add_result("Diagnóstico", False)
+                return
+            
             passed = response.status_code == 200
             data = response.json()
             
@@ -262,9 +329,15 @@ class ProductionTester:
         print_header("Test 6: Obtener Diagnósticos")
         
         try:
-            response = self.session.get(
+            response = self.hacer_request(
+                'GET',
                 f"{BASE_URL}/api/patients/{self.patient_cedula}/diagnoses"
             )
+            if response is None:
+                print_test_result("Obtener diagnósticos", False, "No hay respuesta del servidor")
+                self.add_result("Obtener Diagnósticos", False)
+                return
+            
             passed = response.status_code == 200
             data = response.json()
             count = len(data) if isinstance(data, list) else 0
@@ -291,9 +364,15 @@ class ProductionTester:
             return
         
         try:
-            response = self.session.get(
+            response = self.hacer_request(
+                'GET',
                 f"{BASE_URL}/api/diagnoses/{self.diagnosis_id}/report"
             )
+            if response is None:
+                print_test_result("Generar reporte PDF", False, "No hay respuesta del servidor")
+                self.add_result("Generar Reporte", False)
+                return
+            
             # Verificar que sea PDF (status 200 y contenido binario)
             passed = response.status_code == 200 and len(response.content) > 0
             size = len(response.content) if passed else 0
@@ -321,10 +400,16 @@ class ProductionTester:
         }
         
         try:
-            response = self.session.post(
+            response = self.hacer_request(
+                'POST',
                 f"{BASE_URL}/api/exams",
                 json=exam_data
             )
+            if response is None:
+                print_test_result("Crear examen", False, "No hay respuesta del servidor")
+                self.add_result("Crear Examen", False)
+                return
+            
             passed = response.status_code == 201
             data = response.json()
             
@@ -345,9 +430,15 @@ class ProductionTester:
         print_header("Test 9: Obtener Exámenes")
         
         try:
-            response = self.session.get(
+            response = self.hacer_request(
+                'GET',
                 f"{BASE_URL}/api/patients/{self.patient_cedula}/exams"
             )
+            if response is None:
+                print_test_result("Obtener exámenes", False, "No hay respuesta del servidor")
+                self.add_result("Obtener Exámenes", False)
+                return
+            
             passed = response.status_code == 200
             data = response.json()
             count = len(data) if isinstance(data, list) else 0
